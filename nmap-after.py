@@ -25,10 +25,9 @@ def parse_nmap_output(nmap_output):
     
     return results
 
-def run_nmap_script_scan(ip, ports, script):
+def run_nmap_script_scan(ip, ports, arguments):
     nm = nmap.PortScanner()
     ports_str = ','.join(ports)
-    arguments = f'-sC --script {script}' if script else '-sC'
     scan_result = nm.scan(ip, ports_str, arguments=arguments)
     return scan_result
 
@@ -36,9 +35,8 @@ def main():
     parser = argparse.ArgumentParser(description='Parse Nmap output.')
     parser.add_argument('-f', '--file', required=True, help='Path to the Nmap output file')
     parser.add_argument('-o', '--output', required=False, help='Path to the output file')
-    parser.add_argument('-sC', action='store_true', help='Run Nmap script scan on parsed results')
-    parser.add_argument('--script', required=False, help='Specify a particular Nmap script to run')
-
+    parser.add_argument('-arg', '--arguments', required=False, help='Additional arguments for Nmap scan')
+    
     args = parser.parse_args()
     
     with open(args.file, 'r') as file:
@@ -54,15 +52,15 @@ def main():
         for port_info in ports:
             output_lines.append(f"Port: {port_info['port']}\nState: {port_info['state']}\nService: {port_info['service']}")
 
-    if args.sC:
+    if args.arguments:
         for ip, ports in parsed_results.items():
             open_ports = [port_info['port'] for port_info in ports if port_info['state'] == 'open']
             if open_ports:
-                nmap_scan_result = run_nmap_script_scan(ip, open_ports, args.script)
-                script_scan_output.append(f"\nNmap script scan results for {ip}:\n{nmap_scan_result}")
+                nmap_scan_result = run_nmap_script_scan(ip, open_ports, args.arguments)
+                script_scan_output.append(f"\nNmap scan results for {ip}:\n{nmap_scan_result}")
 
     if args.output:
-        if args.sC:
+        if args.arguments:
             with open(args.output, 'w') as outfile:
                 outfile.write("\n".join(script_scan_output))
         else:
@@ -71,7 +69,7 @@ def main():
     else:
         for line in output_lines:
             print(line)
-        if args.sC:
+        if args.arguments:
             for line in script_scan_output:
                 print(line)
 
